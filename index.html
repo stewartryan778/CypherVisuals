@@ -290,27 +290,70 @@
         </div>
 
         <div class="global-group">
-          <h3>Logo / Text</h3>
-          <div class="global-row">
-            <div class="global-col">
-              <label for="logoTextInput">Logo Text</label>
-              <input type="text" id="logoTextInput" value="Your Logo" />
-            </div>
-            <div class="global-col">
-              <label for="logoSize">Text Size</label>
-              <input
-                type="range"
-                id="logoSize"
-                min="10"
-                max="48"
-                step="1"
-                value="18"
-              />
+          <h3>Logo / Text Overlay</h3>
+          
+          <!-- Logo Type Selector -->
+          <label class="field-label">Type</label>
+          <select id="logoType">
+            <option value="text">Text</option>
+            <option value="image">Image (.jpg/.png)</option>
+          </select>
+
+          <!-- Text Options -->
+          <div id="logoTextOptions">
+            <label class="field-label" for="logoTextInput">Text</label>
+            <input type="text" id="logoTextInput" value="Your Logo" />
+            
+            <div class="global-row" style="margin-top: 4px;">
+              <div class="global-col">
+                <label for="logoSize">Size</label>
+                <input
+                  type="range"
+                  id="logoSize"
+                  min="12"
+                  max="120"
+                  step="2"
+                  value="48"
+                />
+              </div>
+              <div class="global-col">
+                <label for="logoColor">Color</label>
+                <input type="color" id="logoColor" value="#ffffff" />
+              </div>
             </div>
           </div>
-          <label class="checkbox-row">
+
+          <!-- Image Options -->
+          <div id="logoImageOptions" style="display: none;">
+            <label class="field-label">Upload Logo Image</label>
+            <input type="file" id="logoImageInput" accept="image/*" />
+            
+            <label class="field-label" for="logoImageSize">Image Size</label>
+            <input
+              type="range"
+              id="logoImageSize"
+              min="50"
+              max="500"
+              step="10"
+              value="200"
+            />
+          </div>
+
+          <!-- Position Options -->
+          <label class="field-label" for="logoPosition">Position</label>
+          <select id="logoPosition">
+            <option value="center">Center</option>
+            <option value="top-center">Top Center</option>
+            <option value="bottom-center">Bottom Center</option>
+            <option value="top-left">Top Left</option>
+            <option value="top-right">Top Right</option>
+            <option value="bottom-left">Bottom Left</option>
+            <option value="bottom-right">Bottom Right</option>
+          </select>
+
+          <label class="checkbox-row" style="margin-top: 6px;">
             <input type="checkbox" id="logoVisible" checked />
-            Show Logo
+            Show Logo/Text
           </label>
         </div>
 
@@ -372,6 +415,46 @@
             <button id="loadPresetBtn">Load</button>
             <button id="deletePresetBtn">Delete</button>
           </div>
+          
+          <!-- Import/Export Preset Files -->
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #333;">
+            <label class="field-label">Import/Export Presets</label>
+            <div class="preset-buttons">
+              <button id="exportPresetsBtn" title="Download all presets as JSON file">Export</button>
+              <button id="importPresetsBtn" title="Load presets from JSON file">Import</button>
+            </div>
+            <input type="file" id="importPresetsFile" accept=".json" style="display: none;" />
+          </div>
+        </div>
+
+        <!-- NEW: Export/Share Section (Features 15-18) -->
+        <div class="global-group">
+          <h3>Export & Share</h3>
+          
+          <!-- Screenshot -->
+          <button id="screenshotBtn" class="export-btn">
+            📸 Screenshot
+          </button>
+          
+          <!-- Record Video (Note: requires MediaRecorder API) -->
+          <button id="recordBtn" class="export-btn">
+            🎥 Start Recording
+          </button>
+          <div id="recordingStatus" style="display: none; font-size: 10px; color: #ff4444; margin-top: 4px;">
+            ⏺ Recording... <span id="recordTime">00:00</span>
+          </div>
+          
+          <!-- Share Preset via URL -->
+          <button id="sharePresetBtn" class="export-btn">
+            🔗 Share Current Setup
+          </button>
+          <input 
+            type="text" 
+            id="shareUrlOutput" 
+            readonly 
+            placeholder="Share URL will appear here"
+            style="display: none; margin-top: 4px; font-size: 10px;"
+          />
         </div>
 
       </div>

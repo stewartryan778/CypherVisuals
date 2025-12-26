@@ -170,21 +170,133 @@ window.addEventListener("DOMContentLoaded", () => {
     cameraRotateDeg = parseFloat(cameraRotateSlider.value || "0");
   });
 
-  // Logo state (text + size)
-  let logoSize = parseFloat(logoSizeSlider.value || "18");
+  // Enhanced Logo state
+  let logoSize = parseFloat(document.getElementById("logoSize")?.value || "48");
+  let logoType = "text";
+  let logoImage = null;
+  let logoImageSize = 200;
+  let logoPosition = "bottom-center";
+  let logoColor = "#ffffff";
 
   function updateLogoDisplay() {
-    logoTextDisplay.textContent = logoTextInput.value || "";
-    overlayHud.style.display = logoVisibleCheckbox.checked ? "block" : "none";
-    overlayHud.style.fontSize = logoSize + "px";
+    const logoTypeSelect = document.getElementById("logoType");
+    const logoTextOptions = document.getElementById("logoTextOptions");
+    const logoImageOptions = document.getElementById("logoImageOptions");
+    const logoPositionSelect = document.getElementById("logoPosition");
+    const logoColorInput = document.getElementById("logoColor");
+    
+    if (!overlayHud) return;
+
+    // Show/hide based on visibility
+    overlayHud.style.display = logoVisibleCheckbox.checked ? "flex" : "none";
+    
+    // Update position classes
+    overlayHud.className = "";
+    overlayHud.classList.add(logoPosition);
+
+    // Toggle options based on type
+    if (logoType === "text") {
+      if (logoTextOptions) logoTextOptions.style.display = "block";
+      if (logoImageOptions) logoImageOptions.style.display = "none";
+      
+      // Update text display
+      logoTextDisplay.textContent = logoTextInput.value || "";
+      logoTextDisplay.style.display = "block";
+      logoTextDisplay.style.fontSize = logoSize + "px";
+      logoTextDisplay.style.color = logoColor;
+      
+      // Hide image if exists
+      const existingImg = overlayHud.querySelector("img");
+      if (existingImg) existingImg.style.display = "none";
+      
+    } else if (logoType === "image" && logoImage) {
+      if (logoTextOptions) logoTextOptions.style.display = "none";
+      if (logoImageOptions) logoImageOptions.style.display = "block";
+      
+      // Hide text
+      logoTextDisplay.style.display = "none";
+      
+      // Show/create image
+      let img = overlayHud.querySelector("img");
+      if (!img) {
+        img = document.createElement("img");
+        overlayHud.appendChild(img);
+      }
+      img.src = logoImage;
+      img.style.display = "block";
+      img.style.width = logoImageSize + "px";
+      img.style.height = "auto";
+    }
   }
 
-  logoTextInput.addEventListener("input", updateLogoDisplay);
-  logoVisibleCheckbox.addEventListener("change", updateLogoDisplay);
-  logoSizeSlider.addEventListener("input", () => {
-    logoSize = parseFloat(logoSizeSlider.value || "18");
-    updateLogoDisplay();
-  });
+  // Logo type selector
+  const logoTypeSelect = document.getElementById("logoType");
+  if (logoTypeSelect) {
+    logoTypeSelect.addEventListener("change", (e) => {
+      logoType = e.target.value;
+      updateLogoDisplay();
+    });
+  }
+
+  // Logo image upload
+  const logoImageInput = document.getElementById("logoImageInput");
+  if (logoImageInput) {
+    logoImageInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          logoImage = event.target.result;
+          updateLogoDisplay();
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // Logo image size
+  const logoImageSizeSlider = document.getElementById("logoImageSize");
+  if (logoImageSizeSlider) {
+    logoImageSizeSlider.addEventListener("input", (e) => {
+      logoImageSize = parseFloat(e.target.value);
+      updateLogoDisplay();
+    });
+  }
+
+  // Logo position
+  const logoPositionSelect = document.getElementById("logoPosition");
+  if (logoPositionSelect) {
+    logoPositionSelect.addEventListener("change", (e) => {
+      logoPosition = e.target.value;
+      updateLogoDisplay();
+    });
+  }
+
+  // Logo color
+  const logoColorInput = document.getElementById("logoColor");
+  if (logoColorInput) {
+    logoColorInput.addEventListener("input", (e) => {
+      logoColor = e.target.value;
+      updateLogoDisplay();
+    });
+  }
+
+  // Text input and size
+  if (logoTextInput) {
+    logoTextInput.addEventListener("input", updateLogoDisplay);
+  }
+  
+  if (logoVisibleCheckbox) {
+    logoVisibleCheckbox.addEventListener("change", updateLogoDisplay);
+  }
+  
+  const logoSizeSlider = document.getElementById("logoSize");
+  if (logoSizeSlider) {
+    logoSizeSlider.addEventListener("input", (e) => {
+      logoSize = parseFloat(e.target.value || "48");
+      updateLogoDisplay();
+    });
+  }
 
   updateLogoDisplay();
 
@@ -600,6 +712,11 @@ window.addEventListener("DOMContentLoaded", () => {
                 <option value="12" ${layer.visualMode === 12 ? "selected" : ""}>Orb Pulse (Object)</option>
                 <option value="13" ${layer.visualMode === 13 ? "selected" : ""}>Corner Flares (Object)</option>
                 <option value="14" ${layer.visualMode === 14 ? "selected" : ""}>Halo Ring (Object)</option>
+                <option value="15" ${layer.visualMode === 15 ? "selected" : ""}>DNA Helix</option>
+                <option value="16" ${layer.visualMode === 16 ? "selected" : ""}>Plasma Grid</option>
+                <option value="17" ${layer.visualMode === 17 ? "selected" : ""}>Radial Waves</option>
+                <option value="18" ${layer.visualMode === 18 ? "selected" : ""}>Fractal Zoom</option>
+                <option value="19" ${layer.visualMode === 19 ? "selected" : ""}>Electric Arcs</option>
               </select>
             </div>
 
@@ -1184,8 +1301,72 @@ window.addEventListener("DOMContentLoaded", () => {
         vec3 col = palette(tt, A, B, C, D);
         fx = col * mask * tw * (0.9 + u_high * 0.8);
 
+      } else if (u_mode < 15.5) {
+        // 15: DNA Helix (twisted strands)
+        float helixRadius = 0.3;
+        float strand1 = sin(ang * 3.0 + t * 2.0 + u_bass * 5.0) * 0.15;
+        float strand2 = sin(ang * 3.0 + t * 2.0 + 3.14159 + u_mid * 4.0) * 0.15;
+        float d1 = abs(r - (helixRadius + strand1));
+        float d2 = abs(r - (helixRadius + strand2));
+        float helixMask = smoothstep(0.05, 0.0, d1) + smoothstep(0.05, 0.0, d2);
+        float pulse = 0.5 + 0.5 * sin(t * 3.0 + u_high * 8.0);
+        float tt = t * 0.2 + ang * 0.5;
+        vec3 col = palette(tt, A, B, C, D);
+        fx = col * helixMask * pulse * (0.7 + u_mid * 0.8);
+
+      } else if (u_mode < 16.5) {
+        // 16: Plasma Grid (cellular pattern)
+        vec2 grid = p * 8.0;
+        float plasma = sin(grid.x + t + u_bass * 3.0) * 
+                       sin(grid.y + t * 1.3 + u_mid * 2.5) * 
+                       sin((grid.x + grid.y) * 0.5 + t * 0.7);
+        plasma = (plasma + 1.0) * 0.5;
+        float grid_mask = fract(plasma * 4.0 + u_high * 2.0);
+        float tt = plasma + t * 0.3;
+        vec3 col = palette(tt, A, B, C, D);
+        fx = col * grid_mask * (0.6 + u_bass * 0.9);
+
+      } else if (u_mode < 17.5) {
+        // 17: Radial Waves (expanding circles)
+        float wave_count = 8.0;
+        float wave_speed = t * 2.0 + u_bass * 4.0;
+        float waves = sin(r * 15.0 - wave_speed) * 0.5 + 0.5;
+        waves = pow(waves, 2.0 + u_mid * 3.0);
+        float rotate_wave = sin(ang * wave_count + t * 1.5) * 0.5 + 0.5;
+        float combined = waves * rotate_wave;
+        float tt = t * 0.25 + r + u_high * 0.6;
+        vec3 col = palette(tt, A, B, C, D);
+        fx = col * combined * (0.7 + u_high * 0.8);
+
+      } else if (u_mode < 18.5) {
+        // 18: Fractal Zoom (mandelbrot-inspired)
+        vec2 z = p * (2.0 + u_bass * 1.5);
+        float iter = 0.0;
+        for(int i = 0; i < 12; i++) {
+          z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + p * 0.5;
+          if(length(z) > 2.0) break;
+          iter += 1.0;
+        }
+        float fractal = iter / 12.0;
+        float twist = sin(t * 1.5 + fractal * 6.28318 + u_mid * 4.0);
+        float tt = fractal + t * 0.2 + u_high * 0.5;
+        vec3 col = palette(tt, A, B, C, D);
+        fx = col * (fractal * 0.8 + 0.2) * (0.6 + twist * 0.4);
+
+      } else if (u_mode < 19.5) {
+        // 19: Electric Arcs (lightning bolts)
+        float arc_count = 6.0;
+        float arc_angle = ang + t * 2.0 + u_bass * 5.0;
+        float arc_noise = sin(arc_angle * arc_count) * sin(r * 20.0 + t * 3.0);
+        arc_noise = pow(abs(arc_noise), 0.3 + u_mid * 0.5);
+        float arc_fade = exp(-r * 2.0);
+        float flicker = 0.5 + 0.5 * sin(t * 8.0 + u_high * 12.0);
+        float tt = t * 0.4 + arc_noise * 2.0;
+        vec3 col = palette(tt, A, B, C, D);
+        fx = col * arc_noise * arc_fade * flicker * (0.8 + u_high);
+
       } else {
-        // 14: Halo Ring (object halo)
+        // 14: Halo Ring (object halo) - moved to else for 20+
         float innerR = 0.35;
         float outerR = 0.52;
         float band = smoothstep(innerR, innerR + 0.05, r) *
@@ -1388,6 +1569,196 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   render();
+
+  // ================== EXPORT & SHARE FEATURES =====================
+  
+  // 15. Screenshot Button
+  const screenshotBtn = document.getElementById("screenshotBtn");
+  if (screenshotBtn) {
+    screenshotBtn.addEventListener("click", () => {
+      try {
+        const canvas = document.getElementById("stage");
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `vj-screenshot-${Date.now()}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          console.log("Screenshot saved!");
+        });
+      } catch (err) {
+        console.error("Screenshot failed:", err);
+        alert("Screenshot failed. Check console for details.");
+      }
+    });
+  }
+
+  // 16. Video Recording
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let recordingStartTime = 0;
+  let recordingInterval = null;
+
+  const recordBtn = document.getElementById("recordBtn");
+  const recordingStatus = document.getElementById("recordingStatus");
+  const recordTime = document.getElementById("recordTime");
+
+  if (recordBtn && recordingStatus) {
+    recordBtn.addEventListener("click", () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        // Stop recording
+        mediaRecorder.stop();
+        recordBtn.textContent = "🎥 Start Recording";
+        recordBtn.classList.remove("recording");
+        recordingStatus.style.display = "none";
+        if (recordingInterval) {
+          clearInterval(recordingInterval);
+          recordingInterval = null;
+        }
+      } else {
+        // Start recording
+        try {
+          const canvas = document.getElementById("stage");
+          const stream = canvas.captureStream(30); // 30 FPS
+          
+          recordedChunks = [];
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'video/webm;codecs=vp9',
+            videoBitsPerSecond: 2500000
+          });
+
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+              recordedChunks.push(e.data);
+            }
+          };
+
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `vj-recording-${Date.now()}.webm`;
+            a.click();
+            URL.revokeObjectURL(url);
+            console.log("Recording saved!");
+          };
+
+          mediaRecorder.start();
+          recordBtn.textContent = "⏹ Stop Recording";
+          recordBtn.classList.add("recording");
+          recordingStatus.style.display = "block";
+          
+          recordingStartTime = Date.now();
+          recordingInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            recordTime.textContent = `${minutes}:${seconds}`;
+          }, 1000);
+
+        } catch (err) {
+          console.error("Recording failed:", err);
+          alert("Recording not supported in this browser or failed to start.");
+        }
+      }
+    });
+  }
+
+  // 17. Share Preset via URL
+  const sharePresetBtn = document.getElementById("sharePresetBtn");
+  const shareUrlOutput = document.getElementById("shareUrlOutput");
+
+  if (sharePresetBtn && shareUrlOutput) {
+    sharePresetBtn.addEventListener("click", () => {
+      const preset = captureCurrentPreset("Shared Setup");
+      const presetData = JSON.stringify(preset);
+      const encoded = btoa(presetData); // Base64 encode
+      
+      const shareUrl = `${window.location.origin}${window.location.pathname}?preset=${encodeURIComponent(encoded)}`;
+      
+      shareUrlOutput.value = shareUrl;
+      shareUrlOutput.style.display = "block";
+      shareUrlOutput.select();
+      
+      // Try to copy to clipboard
+      try {
+        document.execCommand('copy');
+        console.log("URL copied to clipboard!");
+        sharePresetBtn.textContent = "✓ Copied!";
+        setTimeout(() => {
+          sharePresetBtn.textContent = "🔗 Share Current Setup";
+        }, 2000);
+      } catch (err) {
+        console.log("Manual copy required");
+      }
+    });
+  }
+
+  // Load preset from URL on page load
+  const urlParams = new URLSearchParams(window.location.search);
+  const presetParam = urlParams.get('preset');
+  if (presetParam) {
+    try {
+      const decoded = atob(decodeURIComponent(presetParam));
+      const preset = JSON.parse(decoded);
+      applyPreset(preset);
+      console.log("Loaded preset from URL!");
+    } catch (err) {
+      console.error("Failed to load preset from URL:", err);
+    }
+  }
+
+  // 18. Import/Export Preset Files
+  const exportPresetsBtn = document.getElementById("exportPresetsBtn");
+  const importPresetsBtn = document.getElementById("importPresetsBtn");
+  const importPresetsFile = document.getElementById("importPresetsFile");
+
+  if (exportPresetsBtn) {
+    exportPresetsBtn.addEventListener("click", () => {
+      const dataStr = JSON.stringify(presets, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `vj-presets-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      console.log("Presets exported!");
+    });
+  }
+
+  if (importPresetsBtn && importPresetsFile) {
+    importPresetsBtn.addEventListener("click", () => {
+      importPresetsFile.click();
+    });
+
+    importPresetsFile.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const importedPresets = JSON.parse(event.target.result);
+            if (Array.isArray(importedPresets)) {
+              presets = presets.concat(importedPresets);
+              savePresetsToStorage();
+              refreshPresetSelect();
+              console.log(`Imported ${importedPresets.length} presets!`);
+              alert(`Successfully imported ${importedPresets.length} presets!`);
+            } else {
+              alert("Invalid preset file format.");
+            }
+          } catch (err) {
+            console.error("Import failed:", err);
+            alert("Failed to import presets. Check file format.");
+          }
+        };
+        reader.readAsText(file);
+      }
+    });
+  }
 
   // ================== INITIALIZE HELP MODAL =====================
   const helpBtn = document.getElementById("helpBtn");
