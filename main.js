@@ -185,7 +185,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const logoPositionSelect = document.getElementById("logoPosition");
     const logoColorInput = document.getElementById("logoColor");
     
-    if (!overlayHud) return;
+    if (!overlayHud || !logoVisibleCheckbox || !logoTextDisplay) return;
 
     // Show/hide based on visibility
     overlayHud.style.display = logoVisibleCheckbox.checked ? "flex" : "none";
@@ -438,6 +438,17 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   loadPresetsFromStorage();
+
+  // Create initial layer if none exist
+  if (layers.length === 0) {
+    layers.push(new Layer());
+    selectedLayer = 0;
+  }
+  
+  updateLayerUI();
+  updateInspector();
+  updateQuickEffects();
+  console.log(">>> Initial layer created, layers:", layers.length);
 
   // Auto scene switching
   let autoSwitchEnabled = false;
@@ -1019,6 +1030,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   // ================== WEBGL VISUALS =====================
+  console.log(">>> Initializing WebGL...");
 
   const canvas = document.getElementById("stage");
   const gl = canvas.getContext("webgl");
@@ -1027,6 +1039,8 @@ window.addEventListener("DOMContentLoaded", () => {
     console.error("WebGL not supported");
     return;
   }
+
+  console.log(">>> WebGL context created successfully");
 
   function resizeCanvas() {
     const wrapper = document.getElementById("stageWrapper");
@@ -1568,6 +1582,7 @@ window.addEventListener("DOMContentLoaded", () => {
     requestAnimationFrame(render);
   }
 
+  console.log(">>> Starting render loop...");
   render();
 
   // ================== EXPORT & SHARE FEATURES =====================
@@ -1848,5 +1863,5 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  console.log("✅ Cipher loaded successfully!");
+  console.log("✅ CypherVisuals loaded successfully!");
 });
