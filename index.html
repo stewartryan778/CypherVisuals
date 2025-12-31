@@ -443,10 +443,96 @@
         </div>
 
         <div class="global-group">
-          <h3>Tempo / Beat</h3>
+          <h3>Tempo / Beat Sync</h3>
           <div id="tempoControls">
             <button id="tapTempoBtn">Tap Tempo</button>
             <span id="bpmDisplay">-- BPM</span>
+          </div>
+          
+          <!-- Auto BPM Detection -->
+          <div style="margin-top: 8px;">
+            <button id="autoBpmBtn" style="width: 100%;">🎵 Auto-Detect BPM</button>
+            <div id="bpmDetectionStatus" style="display: none; font-size: 10px; color: #aaa; margin-top: 4px;">
+              Analyzing audio...
+            </div>
+          </div>
+
+          <!-- Beat Sync Options -->
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #333;">
+            <label class="checkbox-row">
+              <input type="checkbox" id="beatSyncEnabled" />
+              Enable Beat Sync
+            </label>
+            <label class="field-label" for="beatSyncIntensity">Beat Response</label>
+            <input
+              type="range"
+              id="beatSyncIntensity"
+              min="0"
+              max="1"
+              step="0.01"
+              value="0.5"
+            />
+            <label class="checkbox-row">
+              <input type="checkbox" id="beatStrobeEnabled" />
+              Beat Strobe Flash
+            </label>
+          </div>
+
+          <!-- Beat Indicator -->
+          <div id="beatIndicator" style="margin-top: 8px; display: none;">
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <div class="beat-dot"></div>
+              <div class="beat-dot"></div>
+              <div class="beat-dot"></div>
+              <div class="beat-dot"></div>
+              <span style="font-size: 10px; margin-left: 8px;">Beat Monitor</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW: Transition System -->
+        <div class="global-group">
+          <h3>Transitions</h3>
+          <label class="field-label" for="transitionMode">Transition Type</label>
+          <select id="transitionMode">
+            <option value="cut">Cut (Instant)</option>
+            <option value="fade">Fade (Crossfade)</option>
+            <option value="wipe">Wipe</option>
+            <option value="zoom">Zoom</option>
+          </select>
+          
+          <label class="field-label" for="transitionDuration">Duration (seconds)</label>
+          <input
+            type="range"
+            id="transitionDuration"
+            min="0.1"
+            max="5"
+            step="0.1"
+            value="1"
+          />
+          <span id="transitionDurationDisplay" style="font-size: 10px;">1.0s</span>
+
+          <label class="checkbox-row" style="margin-top: 6px;">
+            <input type="checkbox" id="transitionOnBeat" />
+            Snap Transitions to Beat
+          </label>
+        </div>
+
+        <!-- NEW: MIDI Controller -->
+        <div class="global-group">
+          <h3>MIDI Controller</h3>
+          <button id="midiConnectBtn" style="width: 100%;">🎹 Connect MIDI Device</button>
+          <div id="midiStatus" style="font-size: 10px; color: #aaa; margin-top: 4px;">
+            No MIDI device connected
+          </div>
+          
+          <div id="midiMappingSection" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #333;">
+            <label class="field-label">MIDI Learn Mode</label>
+            <button id="midiLearnBtn" style="width: 100%;">Start MIDI Learn</button>
+            <div id="midiLearnStatus" style="font-size: 10px; color: #aaa; margin-top: 4px;">
+              Click a control, then move a MIDI knob/slider to map
+            </div>
+            <button id="midiClearBtn" style="width: 100%; margin-top: 4px;">Clear All Mappings</button>
           </div>
         </div>
 

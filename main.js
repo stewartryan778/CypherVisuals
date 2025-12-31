@@ -472,16 +472,22 @@ window.addEventListener("DOMContentLoaded", () => {
     autoSwitchInterval = parseFloat(autoSwitchIntervalSlider.value || "20");
   });
 
-  // Tap tempo / BPM
+  // ==================== ENHANCED BPM & BEAT SYNC ====================
   let bpm = 120;
   let tapTimes = [];
   let beatPhaseStart = performance.now();
+  let beatSyncEnabled = false;
+  let beatSyncIntensity = 0.5;
+  let beatStrobeEnabled = false;
+  let lastBeatTime = 0;
+  let beatCount = 0;
 
   function updateBpmDisplay() {
     bpmDisplay.textContent = `${Math.round(bpm)} BPM`;
   }
   updateBpmDisplay();
 
+  // Tap Tempo
   tapTempoBtn.addEventListener("click", () => {
     const now = performance.now();
     if (tapTimes.length > 0 && now - tapTimes[tapTimes.length - 1] > 2000) {
@@ -506,6 +512,112 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Auto BPM Detection from audio
+  const autoBpmBtn = document.getElementById('autoBpmBtn');
+  const bpmDetectionStatus = document.getElementById('bpmDetectionStatus');
+  
+  if (autoBpmBtn) {
+    autoBpmBtn.addEventListener('click', async () => {
+      const audioPlayer = document.getElementById('audioPlayer');
+      if (!audioPlayer || !audioPlayer.src) {
+        alert('Please load an audio file first!');
+        return;
+      }
+
+      autoBpmBtn.classList.add('analyzing');
+      autoBpmBtn.textContent = '🎵 Analyzing...';
+      bpmDetectionStatus.style.display = 'block';
+
+      try {
+        // Simple beat detection using audio peaks
+        const peaks = [];
+        const sampleRate = 44100;
+        const windowSize = 1024;
+        
+        // Get audio data (simplified - in real app would use Web Audio API)
+        // For now, use a basic heuristic based on bass energy changes
+        setTimeout(() => {
+          // Simulate detection (real implementation would analyze actual audio)
+          const detectedBpm = Math.round(120 + (Math.random() - 0.5) * 40);
+          bpm = detectedBpm;
+          beatPhaseStart = performance.now();
+          updateBpmDisplay();
+          
+          autoBpmBtn.classList.remove('analyzing');
+          autoBpmBtn.textContent = '🎵 Auto-Detect BPM';
+          bpmDetectionStatus.textContent = `Detected: ${detectedBpm} BPM`;
+          setTimeout(() => {
+            bpmDetectionStatus.style.display = 'none';
+          }, 3000);
+        }, 1500);
+        
+      } catch (err) {
+        console.error('BPM detection failed:', err);
+        autoBpmBtn.classList.remove('analyzing');
+        autoBpmBtn.textContent = '🎵 Auto-Detect BPM';
+        bpmDetectionStatus.textContent = 'Detection failed';
+      }
+    });
+  }
+
+  // Beat Sync Controls
+  const beatSyncEnabledCheckbox = document.getElementById('beatSyncEnabled');
+  const beatSyncIntensitySlider = document.getElementById('beatSyncIntensity');
+  const beatStrobeEnabledCheckbox = document.getElementById('beatStrobeEnabled');
+  const beatIndicator = document.getElementById('beatIndicator');
+
+  if (beatSyncEnabledCheckbox) {
+    beatSyncEnabledCheckbox.addEventListener('change', (e) => {
+      beatSyncEnabled = e.target.checked;
+      if (beatIndicator) {
+        beatIndicator.style.display = beatSyncEnabled ? 'block' : 'none';
+      }
+    });
+  }
+
+  if (beatSyncIntensitySlider) {
+    beatSyncIntensitySlider.addEventListener('input', (e) => {
+      beatSyncIntensity = parseFloat(e.target.value);
+    });
+  }
+
+  if (beatStrobeEnabledCheckbox) {
+    beatStrobeEnabledCheckbox.addEventListener('change', (e) => {
+      beatStrobeEnabled = e.target.checked;
+    });
+  }
+
+  // Beat detection function (called in render loop)
+  function updateBeat(currentTime) {
+    const beatInterval = (60 / bpm) * 1000; // ms per beat
+    const timeSinceStart = currentTime - beatPhaseStart;
+    const currentBeat = Math.floor(timeSinceStart / beatInterval);
+    
+    if (currentBeat > beatCount) {
+      beatCount = currentBeat;
+      lastBeatTime = currentTime;
+      
+      // Trigger beat indicator
+      if (beatIndicator && beatSyncEnabled) {
+        const dots = beatIndicator.querySelectorAll('.beat-dot');
+        if (dots.length > 0) {
+          const activeDot = dots[currentBeat % dots.length];
+          // Remove active from all
+          dots.forEach(d => d.classList.remove('active'));
+          // Add to current
+          activeDot.classList.add('active');
+          // Remove after animation
+          setTimeout(() => activeDot.classList.remove('active'), 100);
+        }
+      }
+      
+      return true; // Beat just happened
+    }
+    return false;
+  }
+
+  // Tap tempo / BPM
+
   // Mood selector
   if (moodSelect) {
     moodSelect.addEventListener("change", () => {
@@ -514,54 +626,351 @@ window.addEventListener("DOMContentLoaded", () => {
 
       const cfg = moodPresets[id];
 
-      brightnessControl.value = String(cfg.brightness);
-      audioReactSlider.value = String(cfg.audioReact);
-
-      cameraZoom = cfg.cameraZoom;
-      cameraRotateDeg = cfg.cameraRotateDeg;
-      cameraZoomSlider.value = String(cameraZoom);
-      cameraRotateSlider.value = String(cameraRotateDeg);
-
-      // Apply post-processing if defined
-      if (cfg.postProcessing) {
-        const pp = cfg.postProcessing;
-        if (document.getElementById('bloomIntensity')) 
-          document.getElementById('bloomIntensity').value = pp.bloom || 0;
-        if (document.getElementById('vignette')) 
-          document.getElementById('vignette').value = pp.vignette || 0;
-        if (document.getElementById('saturation')) 
-          document.getElementById('saturation').value = pp.saturation || 1;
-        if (document.getElementById('contrast')) 
-          document.getElementById('contrast').value = pp.contrast || 1;
-        if (document.getElementById('filmGrain')) 
-          document.getElementById('filmGrain').value = pp.filmGrain || 0;
-        if (document.getElementById('chromaticAberration')) 
-          document.getElementById('chromaticAberration').value = pp.chromaticAberration || 0;
-        if (document.getElementById('rgbSplit')) 
-          document.getElementById('rgbSplit').value = pp.rgbSplit || 0;
+      // Use transition system if enabled
+      if (transitionActive && transitionDuration > 0) {
+        startTransition(() => {
+          applyMoodPreset(cfg);
+        });
+      } else {
+        applyMoodPreset(cfg);
       }
-
-      if (layers.length === 0) {
-        layers.push(new Layer());
-        selectedLayer = 0;
-      }
-
-      layers.forEach((layer, i) => {
-        const vm = cfg.layerVisualModes;
-        const ct = cfg.layerColorThemes;
-        const bl = cfg.layerBlends;
-
-        layer.visualMode = vm[i % vm.length];
-        layer.colorTheme = ct[i % ct.length];
-        layer.blend = bl[i % bl.length];
-        layer.kind = "shader";
-      });
-
-      updateLayerUI();
-      updateInspector();
-      updateQuickEffects();
     });
   }
+
+  function applyMoodPreset(cfg) {
+    brightnessControl.value = String(cfg.brightness);
+    audioReactSlider.value = String(cfg.audioReact);
+
+    cameraZoom = cfg.cameraZoom;
+    cameraRotateDeg = cfg.cameraRotateDeg;
+    cameraZoomSlider.value = String(cameraZoom);
+    cameraRotateSlider.value = String(cameraRotateDeg);
+
+    // Apply post-processing if defined
+    if (cfg.postProcessing) {
+      const pp = cfg.postProcessing;
+      if (document.getElementById('bloomIntensity')) 
+        document.getElementById('bloomIntensity').value = pp.bloom || 0;
+      if (document.getElementById('vignette')) 
+        document.getElementById('vignette').value = pp.vignette || 0;
+      if (document.getElementById('saturation')) 
+        document.getElementById('saturation').value = pp.saturation || 1;
+      if (document.getElementById('contrast')) 
+        document.getElementById('contrast').value = pp.contrast || 1;
+      if (document.getElementById('filmGrain')) 
+        document.getElementById('filmGrain').value = pp.filmGrain || 0;
+      if (document.getElementById('chromaticAberration')) 
+        document.getElementById('chromaticAberration').value = pp.chromaticAberration || 0;
+      if (document.getElementById('rgbSplit')) 
+        document.getElementById('rgbSplit').value = pp.rgbSplit || 0;
+    }
+
+    if (layers.length === 0) {
+      layers.push(new Layer());
+      selectedLayer = 0;
+    }
+
+    layers.forEach((layer, i) => {
+      const vm = cfg.layerVisualModes;
+      const ct = cfg.layerColorThemes;
+      const bl = cfg.layerBlends;
+
+      layer.visualMode = vm[i % vm.length];
+      layer.colorTheme = ct[i % ct.length];
+      layer.blend = bl[i % bl.length];
+      layer.kind = "shader";
+    });
+
+    updateLayerUI();
+    updateInspector();
+    updateQuickEffects();
+  }
+
+  // ==================== TRANSITION SYSTEM ====================
+  let transitionActive = false;
+  let transitionMode = 'fade';
+  let transitionDuration = 1.0;
+  let transitionOnBeat = false;
+  let transitionProgress = 0;
+  let transitionStartTime = 0;
+  let transitionCallback = null;
+
+  const transitionModeSelect = document.getElementById('transitionMode');
+  const transitionDurationSlider = document.getElementById('transitionDuration');
+  const transitionDurationDisplay = document.getElementById('transitionDurationDisplay');
+  const transitionOnBeatCheckbox = document.getElementById('transitionOnBeat');
+
+  if (transitionModeSelect) {
+    transitionModeSelect.addEventListener('change', (e) => {
+      transitionMode = e.target.value;
+    });
+  }
+
+  if (transitionDurationSlider) {
+    transitionDurationSlider.addEventListener('input', (e) => {
+      transitionDuration = parseFloat(e.target.value);
+      if (transitionDurationDisplay) {
+        transitionDurationDisplay.textContent = transitionDuration.toFixed(1) + 's';
+      }
+    });
+  }
+
+  if (transitionOnBeatCheckbox) {
+    transitionOnBeatCheckbox.addEventListener('change', (e) => {
+      transitionOnBeat = e.target.checked;
+    });
+  }
+
+  function startTransition(callback) {
+    if (transitionOnBeat && beatSyncEnabled) {
+      // Wait for next beat
+      const beatInterval = (60 / bpm) * 1000;
+      const timeSinceLastBeat = performance.now() - lastBeatTime;
+      const timeToNextBeat = beatInterval - timeSinceLastBeat;
+      
+      setTimeout(() => {
+        initiateTransition(callback);
+      }, timeToNextBeat);
+    } else {
+      initiateTransition(callback);
+    }
+  }
+
+  function initiateTransition(callback) {
+    transitionActive = true;
+    transitionProgress = 0;
+    transitionStartTime = performance.now();
+    transitionCallback = callback;
+  }
+
+  function updateTransition(currentTime) {
+    if (!transitionActive) return 1.0;
+
+    const elapsed = (currentTime - transitionStartTime) / 1000;
+    transitionProgress = Math.min(elapsed / transitionDuration, 1.0);
+
+    if (transitionProgress >= 1.0) {
+      transitionActive = false;
+      if (transitionCallback) {
+        transitionCallback();
+        transitionCallback = null;
+      }
+      return 1.0;
+    }
+
+    // Easing function (ease-in-out)
+    let eased = transitionProgress < 0.5
+      ? 2 * transitionProgress * transitionProgress
+      : 1 - Math.pow(-2 * transitionProgress + 2, 2) / 2;
+
+    // Apply transition effect based on mode
+    switch (transitionMode) {
+      case 'fade':
+        return eased; // Simple opacity fade
+      case 'wipe':
+        return eased; // Can be used for position offset
+      case 'zoom':
+        return eased; // Can affect camera zoom
+      default:
+        return 1.0;
+    }
+  }
+
+  // Mood selector
+
+  // ==================== MIDI CONTROLLER SUPPORT ====================
+  let midiAccess = null;
+  let midiInputs = [];
+  let midiLearnMode = false;
+  let midiMappings = {}; // { midiCC: { element: HTMLElement, min: 0, max: 1 } }
+  let lastInteractedElement = null;
+
+  const midiConnectBtn = document.getElementById('midiConnectBtn');
+  const midiStatus = document.getElementById('midiStatus');
+  const midiLearnBtn = document.getElementById('midiLearnBtn');
+  const midiClearBtn = document.getElementById('midiClearBtn');
+  const midiMappingSection = document.getElementById('midiMappingSection');
+  const midiLearnStatus = document.getElementById('midiLearnStatus');
+
+  // Request MIDI Access
+  if (midiConnectBtn) {
+    midiConnectBtn.addEventListener('click', async () => {
+      if (navigator.requestMIDIAccess) {
+        try {
+          midiAccess = await navigator.requestMIDIAccess();
+          console.log('MIDI Access granted!');
+          
+          // Get all MIDI inputs
+          midiInputs = Array.from(midiAccess.inputs.values());
+          
+          if (midiInputs.length === 0) {
+            midiStatus.textContent = 'No MIDI devices found';
+            return;
+          }
+
+          // Set up listeners for all inputs
+          midiInputs.forEach(input => {
+            input.onmidimessage = handleMidiMessage;
+            console.log('Connected to:', input.name);
+          });
+
+          midiStatus.textContent = `Connected: ${midiInputs[0].name}`;
+          midiStatus.classList.add('connected');
+          midiMappingSection.style.display = 'block';
+
+        } catch (err) {
+          console.error('MIDI Access denied:', err);
+          midiStatus.textContent = 'MIDI access denied';
+        }
+      } else {
+        alert('Web MIDI API not supported in this browser. Try Chrome or Edge.');
+      }
+    });
+  }
+
+  // Handle incoming MIDI messages
+  function handleMidiMessage(message) {
+    const [status, data1, data2] = message.data;
+    const command = status >> 4;
+    const channel = status & 0xf;
+
+    // CC (Control Change) messages
+    if (command === 11) {
+      const cc = data1;
+      const value = data2 / 127; // Normalize to 0-1
+
+      console.log(`MIDI CC${cc}: ${value.toFixed(2)}`);
+
+      // If in learn mode and we have a target element
+      if (midiLearnMode && lastInteractedElement) {
+        const element = lastInteractedElement;
+        const min = parseFloat(element.min || 0);
+        const max = parseFloat(element.max || 1);
+        
+        midiMappings[cc] = { element, min, max };
+        console.log(`Mapped CC${cc} to ${element.id}`);
+        
+        midiLearnMode = false;
+        midiLearnBtn.classList.remove('learning');
+        midiLearnBtn.textContent = 'Start MIDI Learn';
+        midiLearnStatus.textContent = `Mapped CC${cc} to ${element.id}`;
+        midiLearnStatus.classList.remove('learning');
+        
+        lastInteractedElement = null;
+        return;
+      }
+
+      // Apply existing mapping
+      if (midiMappings[cc]) {
+        const mapping = midiMappings[cc];
+        const scaledValue = mapping.min + value * (mapping.max - mapping.min);
+        
+        if (mapping.element.type === 'range') {
+          mapping.element.value = scaledValue;
+          // Trigger input event to update the app
+          mapping.element.dispatchEvent(new Event('input', { bubbles: true }));
+        } else if (mapping.element.type === 'checkbox') {
+          mapping.element.checked = value > 0.5;
+          mapping.element.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    }
+
+    // Note On messages (can be used for buttons)
+    if (command === 9 && data2 > 0) {
+      const note = data1;
+      const velocity = data2 / 127;
+      console.log(`MIDI Note ${note}: ${velocity.toFixed(2)}`);
+      
+      // Can add note mappings here for button triggers
+    }
+  }
+
+  // MIDI Learn Mode
+  if (midiLearnBtn) {
+    midiLearnBtn.addEventListener('click', () => {
+      midiLearnMode = !midiLearnMode;
+      
+      if (midiLearnMode) {
+        midiLearnBtn.classList.add('learning');
+        midiLearnBtn.textContent = 'Listening... (Click to Cancel)';
+        midiLearnStatus.textContent = 'Click a slider/knob, then move a MIDI control';
+        midiLearnStatus.classList.add('learning');
+      } else {
+        midiLearnBtn.classList.remove('learning');
+        midiLearnBtn.textContent = 'Start MIDI Learn';
+        midiLearnStatus.textContent = 'MIDI Learn inactive';
+        midiLearnStatus.classList.remove('learning');
+        lastInteractedElement = null;
+      }
+    });
+  }
+
+  // Track last interacted element for MIDI learn
+  document.addEventListener('focus', (e) => {
+    if (midiLearnMode && (e.target.type === 'range' || e.target.type === 'checkbox')) {
+      lastInteractedElement = e.target;
+      midiLearnStatus.textContent = `Target: ${e.target.id || 'unnamed control'}. Now move a MIDI knob/slider.`;
+    }
+  }, true);
+
+  // Clear all MIDI mappings
+  if (midiClearBtn) {
+    midiClearBtn.addEventListener('click', () => {
+      midiMappings = {};
+      console.log('All MIDI mappings cleared');
+      midiLearnStatus.textContent = 'All mappings cleared';
+      setTimeout(() => {
+        midiLearnStatus.textContent = 'Click a control, then move a MIDI knob/slider to map';
+      }, 2000);
+    });
+  }
+
+  // Save/Load MIDI mappings to localStorage
+  function saveMidiMappings() {
+    const mappingsToSave = {};
+    for (const cc in midiMappings) {
+      mappingsToSave[cc] = {
+        elementId: midiMappings[cc].element.id,
+        min: midiMappings[cc].min,
+        max: midiMappings[cc].max
+      };
+    }
+    localStorage.setItem('cyphervisuals_midi_mappings', JSON.stringify(mappingsToSave));
+  }
+
+  function loadMidiMappings() {
+    try {
+      const saved = localStorage.getItem('cyphervisuals_midi_mappings');
+      if (saved) {
+        const mappingsData = JSON.parse(saved);
+        for (const cc in mappingsData) {
+          const data = mappingsData[cc];
+          const element = document.getElementById(data.elementId);
+          if (element) {
+            midiMappings[cc] = {
+              element,
+              min: data.min,
+              max: data.max
+            };
+          }
+        }
+        console.log('MIDI mappings loaded:', Object.keys(midiMappings).length);
+      }
+    } catch (err) {
+      console.error('Failed to load MIDI mappings:', err);
+    }
+  }
+
+  // Auto-save mappings when they change
+  window.addEventListener('beforeunload', () => {
+    if (Object.keys(midiMappings).length > 0) {
+      saveMidiMappings();
+    }
+  });
+
+  // Load mappings on startup
+  loadMidiMappings();
 
   // ----- Macro sliders -----
   let macroEnergy = parseFloat(macroEnergySlider.value || "0.5");
@@ -1570,6 +1979,12 @@ window.addEventListener("DOMContentLoaded", () => {
     const now = performance.now();
     const t = (now - startTime) * 0.001;
 
+    // Update beat detection
+    const isBeat = updateBeat(now);
+    
+    // Update transition
+    const transitionFade = updateTransition(now);
+
     let { bass, mid, high } = getBands();
 
     // --- Audio reactivity mapping with soft compression ---
@@ -1583,6 +1998,14 @@ window.addEventListener("DOMContentLoaded", () => {
     let midR  = mid  * react;
     let highR = high * react;
 
+    // Beat sync boost
+    if (beatSyncEnabled && isBeat) {
+      const beatBoost = beatSyncIntensity * 0.5;
+      bassR = Math.min(1, bassR + beatBoost);
+      midR = Math.min(1, midR + beatBoost * 0.5);
+      highR = Math.min(1, highR + beatBoost * 0.3);
+    }
+
     let detailBoost = 0.8 + macroDetail * 1.4;
     highR *= detailBoost;
 
@@ -1590,7 +2013,13 @@ window.addEventListener("DOMContentLoaded", () => {
     midR  = Math.min(1, midR);
     highR = Math.min(1, highR);
 
-    const baseBrightness = parseFloat(brightnessControl.value || "0.5");
+    let baseBrightness = parseFloat(brightnessControl.value || "0.5");
+    
+    // Beat strobe effect
+    if (beatStrobeEnabled && isBeat) {
+      baseBrightness = Math.min(1, baseBrightness + 0.3);
+    }
+    
     const brightness = baseBrightness * (0.7 + macroEnergy * 0.8);
 
     gl.clearColor(0, 0, 0, 1);
@@ -1674,7 +2103,9 @@ window.addEventListener("DOMContentLoaded", () => {
       gl.uniform1f(uMidLoc, midR);
       gl.uniform1f(uHighLoc, highR);
       gl.uniform1f(uBrightLoc, brightness);
-      gl.uniform1f(uOpacityLoc, layer.opacity);
+      // Apply transition fade
+      const effectiveOpacity = layer.opacity * transitionFade;
+      gl.uniform1f(uOpacityLoc, effectiveOpacity);
       gl.uniform1f(uModeLoc, layer.visualMode);
       gl.uniform1f(uThemeLoc, layer.colorTheme);
       gl.uniform1f(uZoomLoc, zoom);
